@@ -1,0 +1,8 @@
+build/
+portfolio_results/
+Stocks_Data/
+config.json
+portfolio_optimiser_v1.0.spec
+pyinstaller_command.txt
+portfolio_optimiser_v1.0
+portfolio_optimiser.py
