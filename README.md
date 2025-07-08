@@ -69,21 +69,21 @@ pip install pandas numpy scipy matplotlib seaborn adjustText
 
 Data should have a formatting similar to CSV files from:
 - **US Stocks**: nasdaq.com historical data format - [Nasdaq Historical Data](https://www.nasdaq.com/market-activity/stocks)
-- **EUR Stocks**: fr.investing.com historical data format - [Investing Historical Data](https://in.investing.com/equities/)
+- **EUR Stocks**: fr.investing.com historical data format - [Investing Historical Data](https://fr.investing.com/equities/)
 - **FX rates**: EUR/USD exchange rates from fr.investing.com - [Investing.com EUR/USD](https://fr.investing.com/currencies/usd-eur-historical-data)
 
 Expected columns:
 
 - **Date column**: Consistent date format (MM/DD/YYYY for USD, DD/MM/YYYY for EUR). More specifically, the code uses format='%d/%m/%Y' for EUR if decimal_separator is a comma (,) and relies on errors='coerce' otherwise.
-- **Price column**: 'Close' or 'Last' (USD), 'Dernier' (EUR)
+- **Price column**: 'Close/Last' (USD), 'Dernier' (EUR)
 - **FX data**: EUR/USD exchange rates with 'Date' and 'Dernier' columns
 
 Example:
 | Field | USD Stocks | EUR Stocks | FX Data |
 |-------|------------|------------|---------|
 | Date  | `Date` (MM/DD/YYYY) | `Date` (DD/MM/YYYY) | `Date` |
-| Price | `Close` or `Last` | `Dernier` | `Dernier` |
-| Notes | Use U.S. locale (.) | Use French locale (,) | EUR/USD historical rate |
+| Price | `Close/Last` | `Dernier` | `Dernier` |
+| Notes | Use U.S. locale (.) | Use French locale (,) | Use French locale (,) |
 
 ### Basic Usage
 ```bash
@@ -142,7 +142,7 @@ The `config.json` file controls all optimisation parameters:
 
 ## Output
 
-The application generates:
+The code generates:
 
 1. **portfolio_optimisation_results.csv**: Detailed portfolio metrics and weights
 2. **optimised_portfolios.png**: Efficient frontier with optimal portfolios
