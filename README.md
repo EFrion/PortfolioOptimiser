@@ -169,6 +169,16 @@ The code generates:
 
 >**Note**: Output files are saved to the directory specified in `config.json` under `"output_settings" → "OUTPUT_DIR"`. Default is `"portfolio_results/"`.
 
+---
+
+### Example: Optimised Portfolios Plot
+
+This plot illustrates the efficient frontiers (for both static and dynamic covariance models), Monte Carlo simulated portfolios, and the key optimal portfolios (Minimum Variance, Maximum Sharpe, Sortino, and MVSK) derived from your input data.
+
+![Optimised Portfolios](portfolio_results/optimised_portfolios.png)
+
+---
+
 ## Technical Implementation
 
 - **Optimisation**: Uses scipy.optimize with the Sequential Least Squares Programming (SLSQP) method for constrained non-linear optimisation
