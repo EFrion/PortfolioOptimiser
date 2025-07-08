@@ -85,18 +85,18 @@ Example:
 | Price | `Close/Last` | `Dernier` | `Dernier` |
 | Notes | Use U.S. locale (.) | Use French locale (,) | Use French locale (,) |
 
-### Running the Application
+## Running the Application
 
 There are two primary ways to run the Portfolio Optimiser:
 
-## 1. Running the Executable
+### 1. Running the Executable
 For a quick start without needing a Python environment setup, you can download the pre-compiled executable.
 
 - Go to [Releases page](https://https://github.com/EFrion/PortfolioOptimiser/releases/tag/v1.0.0) and download the executable
 - Ensure your Stocks_Data folder and config.json file are placed in the same directory as the extracted executable
 - Run the executable
 
-## 2. Running from Source (Python Script)
+### 2. Running from Source (Python Script)
 
 If you prefer to run the Python script directly, or wish to modify the code, follow these steps:
 
