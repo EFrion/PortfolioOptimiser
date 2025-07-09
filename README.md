@@ -92,7 +92,7 @@ There are two primary ways to run the Portfolio Optimiser:
 ### 1. Running the Executable
 For a quick start without needing a Python environment setup, you can download the pre-compiled executable.
 
-- Go to [Releases page](https://https://github.com/EFrion/PortfolioOptimiser/releases/tag/v1.0.0) and download the executable
+- Go to [Releases page](https://github.com/EFrion/PortfolioOptimiser/releases/tag/v1.0.0) and download the executable
 - Ensure your Stocks_Data folder and config.json file are placed in the same directory as the extracted executable
 - Run the executable
 
