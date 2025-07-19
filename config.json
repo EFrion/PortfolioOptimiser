@@ -1,0 +1,76 @@
+{
+  "feature_toggles": {
+    "RUN_STATIC_PORTFOLIO": true,
+    "RUN_DYNAMIC_PORTFOLIO": true,
+    "RUN_EQUAL_WEIGHTED_PORTFOLIO": true,
+    "RUN_MONTE_CARLO_SIMULATION": true,
+    "RUN_MVO_OPTIMISATION": true,
+    "RUN_SHARPE_OPTIMISATION": true,
+    "RUN_SORTINO_OPTIMISATION": true,
+    "RUN_MVSK_OPTIMISATION": true,
+    "RUN_BACKTEST": true
+  },
+  "data_source": {
+    "USE_YAHOO_FINANCE": true,
+    "YAHOO_FINANCE_TICKERS": ["AMAT", "AMT", "AMUN.PA", "ASML.AS", "BUY.BE", "BMO","BMW.DE", "BNP.PA", "COFB.BR", "CS.PA", "DSY.PA", "ES", "HPQ", "IPG", "ISP.MI", "LRCX", "MAN", "MBG.DE", "MSI", "NN.AS", "PIA.MI","PLD", "PUB.PA", "RHI", "SAN.PA", "SLF", "TRN.MI", "TT"],
+    "YAHOO_START_DATE": "2015-11-01",
+    "YAHOO_FINANCE_CACHE_DIR": "yahoo_cache"
+  },
+  "data_paths": {
+    "STOCK_ROOT_FOLDER": "Stocks_Data",
+    "EXCHANGE_RATE_FILE_NAME": "usdeur.csv"
+  },
+  "portfolio_parameters": {
+    "RISK_FREE_RATE": 0.02,
+    "LAMBDA_S": 0.01,
+    "LAMBDA_K": 0.1,
+    "NUM_FRONTIER_POINTS": 50,
+    "NUM_PORTFOLIO_MC": 2000,
+    "CONFIGURED_MAX_STOCK_WEIGHT": 1.0,
+    "CONFIGURED_MAX_SECTOR_WEIGHT": 1.0,
+    "ROLLING_WINDOW_DAYS": 180
+  },
+  "backtesting_parameters": {
+    "BACKTEST_START_DATE": "",
+    "BACKTEST_END_DATE": "",
+    "REBALANCING_FREQUENCY": "QE",
+    "HISTORICAL_DATA_WINDOW_DAYS": 252
+  },
+  "output_settings": {
+    "OUTPUT_DIR": "portfolio_results",
+    "OUTPUT_FILENAME": "portfolio_optimisation_results.csv",
+    "BACKTEST_OUTPUT_FILENAME": "backtest_results.csv"
+  },
+  "stock_sectors": {
+    "AMAT": "Technology",
+    "AMT": "Real Estate",
+    "AMUN": "Financials",
+    "ASML": "Technology",
+    "BUY": "Discretionary Consumption",
+    "BMO": "Financials",
+    "BMW": "Discretionary Consumption",
+    "BNP": "Financials",
+    "COFB": "Real Estate",
+    "CS": "Financials",
+    "DSY": "Technology",
+    "ES": "Utilitaries",
+    "HPQ": "Technology",
+    "IPG": "Communication",
+    "ISP": "Financials",
+    "LRCX": "Technology",
+    "MAN": "Industry",
+    "MBG": "Discretionary Consumption",
+    "MSI": "Technology",
+    "NN": "Financials",
+    "PIA": "Discretionary Consumption",
+    "PLD": "Real Estate",
+    "PUB": "Communication",
+    "QBTS": "Technology",
+    "RHI": "Industry",
+    "SAN": "Health",
+    "SLF": "Financials",
+    "TRN": "Utilitaries",
+    "TT": "Industry"
+  }
+}
+

@@ -1,7 +1,10 @@
 build/
 portfolio_results/
+__pycache__/
+versions/
+yahoo_cache/
 Stocks_Data/
-config.json
+LICENSE
 portfolio_optimiser_v1.0.spec
 pyinstaller_command.txt
 portfolio_optimiser_v1.0
