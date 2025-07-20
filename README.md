@@ -203,13 +203,14 @@ The code generates:
 
 ### Output examples
 
-- The top left plot shows the efficient frontiers (for both static and dynamic covariance models), Monte Carlo simulated portfolios, and the key optimal portfolios (Minimum Variance, Maximum Sharpe, Sortino, and MVSK) derived from your input data. 
-- The top right plot shows the cumulated P&L over a backtest period for the computed strategies as well as the "Buy & Hold" and rebalanced equally-weighted portfolio ("Rebalanced_EWP") benchmark portfolios. 
-- The bottom left plot shows how each strategy relatively fares compared to the "Buy & Hold" benchmark.
-- The bottom right plot shows how dynamic versions of each strategy fares against their static counterpart. 
-
-![Optimised Portfolios](portfolio_results/optimised_portfolios.png) ![Backtest Metrics](portfolio_results/cumulative_returns_full.png)
-![Benchmark Differences](portfolio_results/benchmark_difference.png) ![Dynamic vs Static](portfolio_results/dynamic_vs_static_difference.png)
+- The first plot shows the efficient frontiers (for both static and dynamic covariance models), Monte Carlo simulated portfolios, and the key optimal portfolios (Minimum Variance, Maximum Sharpe, Sortino, and MVSK) derived from your input data. 
+![Optimised Portfolios](portfolio_results/optimised_portfolios.png)
+- The second plot shows the cumulated P&L over a backtest period for the computed strategies as well as the "Buy & Hold" and rebalanced equally-weighted portfolio ("Rebalanced_EWP") benchmark portfolios. 
+![Backtest Metrics](portfolio_results/cumulative_returns.png)
+- The third plot shows how each strategy relatively fares compared to the "Buy & Hold" benchmark.
+![Benchmark Differences](portfolio_results/benchmark_difference.png)
+- The fourth plot shows how dynamic versions of each strategy fares against their static counterpart. 
+![Dynamic vs Static](portfolio_results/dynamic_vs_static_difference.png)
 
 ## Testing
 
