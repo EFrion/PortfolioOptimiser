@@ -220,12 +220,15 @@ All tests are located in the 'test_backtest.py' file.
 
 **How to run the tests**
 
-1. **Install 'pytest':
+1. **Install pytest**:
 ```
 pip install pytest
 ```
-2. **Go the project directory**: ensure 'test_backtest.py' is correctly located
-3. **Run the test**: 'pytest'
+2. **Go the project directory**: ensure `test_backtest.py` is correctly located
+3. **Run the test**:
+```
+pytest
+```
 
 ## Technical Implementation
 
