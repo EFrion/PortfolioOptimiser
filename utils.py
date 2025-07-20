@@ -971,9 +971,16 @@ def _run_single_optimisation(objective_function, initial_guess, args, bounds, co
     Returns:
         tuple: (optimal_weights, success_status, message)
     """
+    options = {'maxiter': 100}
     result = minimize(objective_function, initial_guess, args=args,
-                      method='SLSQP', bounds=bounds, constraints=constraints)
+                      method='SLSQP', bounds=bounds, constraints=constraints, options=options)
     
+#    if not result.success:
+#        print(f"DEBUG: Optimization FAILED! Message: {result.message}")
+#        print(f"DEBUG: Status: {result.status}, NFEV: {result.nfev}, NIT: {result.nit}, JACOB: {result.njev}")
+#        if result.x is not None:
+#             print(f"DEBUG: Resulting weights (if any): {result.x}")
+             
     if result.success and not np.any(np.isnan(result.x)):
         return result.x, True, result.message
     else:
@@ -1035,7 +1042,8 @@ def calculate_mvp_portfolio(annual_returns: np.ndarray,
                             risk_free_rate: float,
                             num_assets: int,
                             num_frontier_points: int,
-                            verbose: bool = True) -> dict:
+                            verbose: bool = True,
+                            calculate_frontier: bool = True) -> dict:
     """
     Calculates the Minimum Variance Portfolio (MVP) and traces the Efficient Frontier
     for a given static set of returns and covariance.
@@ -1085,63 +1093,69 @@ def calculate_mvp_portfolio(annual_returns: np.ndarray,
     if mvp_success:
         results['weights'] = mvp_weights
         results['success'] = True
+        results['metrics'] = _calculate_portfolio_metrics_full(
+            mvp_weights, annual_returns, daily_returns_df_slice, covariance_matrix, risk_free_rate
+        )
         results['message'] = mvp_message
         
         if verbose:
             print("\nMinimum Variance Portfolio (MVP):")
             print(f"Return: {results['metrics']['Return']:.2%}")
             print(f"Volatility: {results['metrics']['Volatility']:.2%}")
-#        print("Weights:")
-#            for i, ticker in enumerate(portfolio_tickers):
-#                print(f"  {ticker}: {results['weights'][i]:.2%}") 
- 
-        # Trace the Efficient Frontier
-        if num_assets > 20: # Only trace if many assets for performance
-            min_return_for_frontier = results['metrics']['Return']
-            max_return_for_frontier = max(annual_returns) + 0.001  # Add a small buffer to ensure the highest return point is included. 
-            if min_return_for_frontier >= max_return_for_frontier:
-                max_return_for_frontier = min_return_for_frontier + 0.001
+            #print("Weights: ", results['weights'])
+        
+        if calculate_frontier:            
+            # Trace the Efficient Frontier
+            if num_assets > 20: # Only trace if many assets for performance
+                min_return_for_frontier = results['metrics']['Return']
+                max_return_for_frontier = max(annual_returns) + 0.001  # Add a small buffer to ensure the highest return point is included. 
+                if min_return_for_frontier >= max_return_for_frontier:
+                    max_return_for_frontier = min_return_for_frontier + 0.001
 
-            #print("min_return_for_frontier_static: ", min_return_for_frontier_static, "max_return_for_frontier_static: ", max_return_for_frontier_static) 
-            target_returns = np.linspace(min_return_for_frontier, max_return_for_frontier, num_frontier_points)
+                #print("min_return_for_frontier: ", min_return_for_frontier, "max_return_for_frontier: ", max_return_for_frontier) 
+                target_returns = np.linspace(min_return_for_frontier, max_return_for_frontier, num_frontier_points)
 
-            efficient_frontier_std_devs = [results['metrics']['Volatility']]
-            efficient_frontier_returns = [results['metrics']['Return']]
-            current_initial_guess_frontier = results['weights']
+                efficient_frontier_std_devs = [results['metrics']['Volatility']]
+                efficient_frontier_returns = [results['metrics']['Return']]
+                current_initial_guess_frontier = results['weights']
 
-            failures_in_a_row = 0
-            last_achieved_target = min_return_for_frontier
+                #print("\nefficient_frontier_std_devs: ", efficient_frontier_std_devs)
+                #print("\nefficient_frontier_returns: ", efficient_frontier_returns)
+                #print("\ncurrent_initial_guess_frontier: ", current_initial_guess_frontier)
+                
+                failures_in_a_row = 0
+                last_achieved_target = min_return_for_frontier
+
+                for target_ret in target_returns:
+                    return_constraint = {'type': 'eq', 'fun': lambda x: portfolio_return(x, annual_returns) - target_ret}
+                    all_constraints = constraints + [return_constraint]
+
+                    frontier_weights, frontier_success, frontier_message = _run_single_optimisation(
+                        portfolio_volatility, current_initial_guess_frontier, args=(covariance_matrix,),
+                        bounds=bounds, constraints=all_constraints
+                    )
+
+                    #print(f"DEBUG: Frontier optimisation for target weight {frontier_weights}: Success={frontier_success}, Message={frontier_message}") 
+                    if frontier_success:
+                        frontier_volatility = portfolio_volatility(frontier_weights, covariance_matrix)
+                        frontier_return = portfolio_return(frontier_weights, annual_returns)
+                        efficient_frontier_std_devs.append(frontier_volatility)
+                        efficient_frontier_returns.append(frontier_return)
+                        current_initial_guess_frontier = frontier_weights
+                        failures_in_a_row = 0
+                        last_achieved_target = target_ret
+                    else:
+                        #print(f"Optimisation failed at target return {frontier_return:.2%}: {frontier_message}")
+                        failures_in_a_row += 1
+                        if failures_in_a_row >= 1:
+                            print(f"\nMaximum return target: {last_achieved_target:.2%} (Efficient frontier tracing stopped).")
+                            break 
+
+                # Ensures the frontier is drawn smoothly and monotonically left-to-right. 
+                optimised_points = sorted(list(zip(efficient_frontier_std_devs, efficient_frontier_returns)))
+                results['efficient_frontier_std_devs'] = [p[0] for p in optimised_points]
+                results['efficient_frontier_returns'] = [p[1] for p in optimised_points]
             
-            for target_ret in target_returns:
-                return_constraint = {'type': 'eq', 'fun': lambda x: portfolio_return(x, annual_returns) - target_ret}
-                all_constraints = constraints + [return_constraint]
-
-                frontier_weights, frontier_success, frontier_message = _run_single_optimisation(
-                    portfolio_volatility, current_initial_guess_frontier, args=(covariance_matrix,),
-                    bounds=bounds, constraints=all_constraints
-                )
-
-                #print(f"DEBUG: Static Frontier optimisation for target return {frontier_return:.2%}: Success={frontier_success}, Message={frontier_message}") 
-                if frontier_success:
-                    frontier_volatility = portfolio_volatility(frontier_weights, covariance_matrix)
-                    frontier_return = portfolio_return(frontier_weights, annual_returns)
-                    efficient_frontier_std_devs.append(frontier_volatility)
-                    efficient_frontier_returns.append(frontier_return)
-                    current_initial_guess_frontier = frontier_weights
-                    failures_in_a_row = 0
-                    last_achieved_target = target_ret
-                else:
-                    #print(f"Optimisation failed at target return {frontier_return:.2%}: {frontier_message}")
-                    failures_in_a_row += 1
-                    if failures_in_a_row >= 1:
-                        print(f"\nMaximum return target: {last_achieved_target:.2%} (Efficient frontier tracing stopped).")
-                        break 
-
-            # Ensures the frontier is drawn smoothly and monotonically left-to-right. 
-            optimised_points = sorted(list(zip(efficient_frontier_std_devs, efficient_frontier_returns)))
-            results['efficient_frontier_std_devs'] = [p[0] for p in optimised_points]
-            results['efficient_frontier_returns'] = [p[1] for p in optimised_points]
-
     else:
         weights_to_use = initial_guess 
         success_status = False
@@ -2578,8 +2592,12 @@ def run_backtest(config, all_stock_prices, daily_returns, portfolio_tickers, num
 
     if rebalancing_frequency=='ME':
         print(f"\nRebalancing frequency is monthly.")
+    elif rebalancing_frequency=='QE':
+        print(f"\nRebalancing frequency is quarterly.")
+    elif rebalancing_frequency=='YE':
+        print(f"\nRebalancing frequency is yearly.")
     else:    
-        print(f"\nDEBUG: rebalancing_frequency is unknown or not 'ME'. Current: {rebalancing_frequency}")
+        print(f"\nDEBUG: rebalancing_frequency is unknown. Current: {rebalancing_frequency}")
     
     # Slice all_stock_prices to the exact backtest period first
     backtest_prices_df = all_stock_prices.loc[backtest_start_date:backtest_end_date]
@@ -2650,22 +2668,6 @@ def run_backtest(config, all_stock_prices, daily_returns, portfolio_tickers, num
     # Initialise cumulative returns history with the index of the backtest daily returns
     cumulative_returns_history = pd.DataFrame(index=backtest_daily_returns_all_stocks.index[backtest_daily_returns_all_stocks.index >= pnl_start_date])
     initial_portfolio_value = 1.0
-
-#    # Calculate Buy & Hold cumulative returns (buy once and never touch the portfolio again)
-#    if not backtest_daily_returns_all_stocks.empty:
-#        equal_weights = np.array([1.0 / num_assets] * num_assets)
-#        buy_and_hold_portfolio_returns = backtest_daily_returns_all_stocks.dot(equal_weights)
-#        cumulative_bh_full = (1 + buy_and_hold_portfolio_returns).cumprod()
-#         # Now, slice and rebase Buy & Hold to align with the P&L start date
-#        if pnl_start_date in cumulative_bh_full.index:
-#            rebase_factor_bh = cumulative_bh_full.loc[pnl_start_date]
-#            cumulative_returns_history['Buy_and_Hold'] = cumulative_bh_full.loc[pnl_start_date:] / rebase_factor_bh
-#        else:
-#            print(f"Warning: EWP data not available for start date {pnl_start_date}. Aborting.")
-#            exit()
-#    else:
-#        print("Warning: Not enough data to calculate Buy & Hold returns. Aborting.")
-#        exit()
 
     initial_prices_bh = backtest_prices_df.loc[pnl_start_date] # Get initial prices at pnl_start_date
     initial_investment_per_stock = (initial_portfolio_value / num_assets) / initial_prices_bh.values  # Calculate initial investment per stock for EWP
@@ -2754,7 +2756,8 @@ def run_backtest(config, all_stock_prices, daily_returns, portfolio_tickers, num
                     risk_free_rate=risk_free_rate,
                     num_assets=num_assets,
                     num_frontier_points=config['portfolio_parameters']['NUM_FRONTIER_POINTS'],
-                    verbose=False
+                    verbose=False,
+                    calculate_frontier=False
                 )
                 if mvp_results_static_rebalance['success']:
                     last_weights['Static_MVP'] = mvp_results_static_rebalance['weights']
@@ -2841,7 +2844,8 @@ def run_backtest(config, all_stock_prices, daily_returns, portfolio_tickers, num
                             risk_free_rate=risk_free_rate,
                             num_assets=num_assets,
                             num_frontier_points=config['portfolio_parameters']['NUM_FRONTIER_POINTS'],
-                            verbose=False
+                            verbose=False,
+                            calculate_frontier=False
                         )
                         if mvp_results_dynamic_rebalance['success']:
                             last_weights['Dynamic_MVP'] = mvp_results_dynamic_rebalance['weights']

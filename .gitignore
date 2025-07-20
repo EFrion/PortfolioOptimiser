@@ -3,9 +3,11 @@ portfolio_results/
 __pycache__/
 versions/
 yahoo_cache/
+dist/
 Stocks_Data/
 LICENSE
 portfolio_optimiser_v1.0.spec
 pyinstaller_command.txt
 portfolio_optimiser_v1.0
 portfolio_optimiser.py
+*.spec

@@ -28,7 +28,7 @@ This Python application optimises investment portfolios using historical stock d
 - Monte Carlo simulation for portfolio space exploration
 - Multi-currency support with automatic FX conversion
 - Sector and individual position constraints
-- Comprehensive visualisation including efficient frontiers and correlation heatmap
+- Comprehensive visualisation including efficient frontiers, correlation heatmap, cumulative return, benchmark difference, dynamic vs static strategy difference
 
 ## Mathematical Foundation
 
@@ -39,7 +39,7 @@ The optimiser implements several portfolio optimisation models:
 - **Sortino Ratio**: Downside risk-adjusted optimisation
 - **MVSK**: Mean-Variance-Skewness-Kurtosis utility maximisation
 
-All optimisation models incorporate two diversification constraints: individual positions are capped at 5% of total portfolio value, and sector allocations are limited to 25% maximum. The efficient frontier is computed only when these constraints can be satisfied simultaneously. Portfolios with insufficient assets to meet minimum diversification requirements will not generate frontier plots. This typically requires a minimum of 20 stocks if individual position limits are set to 5%.
+All optimisation models incorporate two optional diversification constraints: capped individual positions at X% of total portfolio value, and capped sector allocations at Y% maximum. The efficient frontier is computed only when these constraints can be satisfied simultaneously. Portfolios with insufficient assets to meet minimum diversification requirements will not generate frontier plots. This typically requires a minimum of 20 stocks if individual position limits are set to 5%.
 
 ## Quick Start
 
@@ -47,14 +47,19 @@ All optimisation models incorporate two diversification constraints: individual 
 Tested with Python **3.12+**
 
 ```bash
-pip install pandas numpy scipy matplotlib seaborn adjustText
+pip install pandas numpy scipy matplotlib seaborn adjustText yfinance datetime
 ```
 
 ### Data Structure
+The project expects a specific data structure if you're providing your own CSV files. Otherwise, data is fetched automatically from Yahoo Finance.
 ```
 ./
-├── portfolio_optimiser_v1.0.py
+├── portfolio_optimiser_v1.1.py
 ├── config.json
+├── utils.py
+├── test_backtest.py
+├── yahoo_cache/
+│   └── yahoo_finance_data_YYYY-MM-DD_to_YYYY-MM-DD.csv
 └── Stocks_Data/
     ├── USD/
     │   ├── AMAT.csv
@@ -65,7 +70,9 @@ pip install pandas numpy scipy matplotlib seaborn adjustText
     └── usdeur.csv
 ```
 
-### CSV Format Requirements
+### CSV Format Requirements (Optional)
+
+This section is for users who wish to import their own historical data instead of using the Yahoo Finance API (default).
 
 Data should have a formatting similar to CSV files from:
 - **US Stocks**: nasdaq.com historical data format - [Nasdaq Historical Data](https://www.nasdaq.com/market-activity/stocks)
@@ -92,8 +99,8 @@ There are two primary ways to run the Portfolio Optimiser:
 ### 1. Running the Executable
 For a quick start without needing a Python environment setup, you can download the pre-compiled executable.
 
-- Go to [Releases page](https://github.com/EFrion/PortfolioOptimiser/releases/tag/v1.0.0) and download the executable
-- Ensure your Stocks_Data folder and config.json file are placed in the same directory as the extracted executable
+- Go to [Releases page](https://github.com/EFrion/PortfolioOptimiser/releases/tag/v1.1) and download the executable
+- Ensure config.json, utils.py, and other necessary files are placed in the same directory as the extracted executable
 - Run the executable
 
 ### 2. Running from Source (Python Script)
@@ -102,12 +109,11 @@ If you prefer to run the Python script directly, or wish to modify the code, fol
 
 - Clone the repository or download the source code
 - Ensure you have met the Prerequisites (Python and required libraries)
-- Prepare your data as described in Data Structure and CSV Format Requirements
+- Prepare your data as described in Data Structure and CSV Format Requirements (Optional)
 - Go to the project's root directory in your terminal and execute the script:
 ```bash
-python portfolio_optimiser_v1.0.py
+python portfolio_optimiser_v1.1.py
 ```
-
 
 ## Configuration
 
@@ -118,11 +124,19 @@ The `config.json` file controls all optimisation parameters:
   "feature_toggles": {
     "RUN_STATIC_PORTFOLIO": true,
     "RUN_DYNAMIC_PORTFOLIO": true,
-    "RUN_MONTE_CARLO_SIMULATION": true,
-    "RUN_MVO_OPTIMISATION": true,
+    "RUN_EQUAL_WEIGHTED_PORTFOLIO": true,
+    "RUN_MONTE_CARLO_SIMULATION": false,
+    "RUN_MVO_OPTIMISATION": false,
     "RUN_SHARPE_OPTIMISATION": true,
     "RUN_SORTINO_OPTIMISATION": true,
-    "RUN_MVSK_OPTIMISATION": true
+    "RUN_MVSK_OPTIMISATION": true,
+    "RUN_BACKTEST": true
+  },
+  "data_source": {
+    "USE_YAHOO_FINANCE": true,
+    "YAHOO_FINANCE_TICKERS": ["AMAT", "BNP.PA"],
+    "YAHOO_START_DATE": "2015-11-01",
+    "YAHOO_FINANCE_CACHE_DIR": "yahoo_cache"
   },
   "data_paths": {
     "STOCK_ROOT_FOLDER": "Stocks_Data",
@@ -130,16 +144,24 @@ The `config.json` file controls all optimisation parameters:
   },
   "portfolio_parameters": {
     "RISK_FREE_RATE": 0.02,
-    "LAMBDA_S": 0.1,
+    "LAMBDA_S": 0.01,
     "LAMBDA_K": 0.1,
-    "NUM_FRONTIER_POINTS": 100,
-    "CONFIGURED_MAX_STOCK_WEIGHT": 0.05,
-    "CONFIGURED_MAX_SECTOR_WEIGHT": 0.25,
-    "ROLLING_WINDOW_DAYS": 252
+    "NUM_FRONTIER_POINTS": 50,
+    "NUM_PORTFOLIO_MC": 2000,
+    "CONFIGURED_MAX_STOCK_WEIGHT": 1.0,
+    "CONFIGURED_MAX_SECTOR_WEIGHT": 1.0,
+    "ROLLING_WINDOW_DAYS": 180
+  },
+  "backtesting_parameters": {
+    "BACKTEST_START_DATE": "",
+    "BACKTEST_END_DATE": "",
+    "REBALANCING_FREQUENCY": "QE",
+    "HISTORICAL_DATA_WINDOW_DAYS": 252
   },
   "output_settings": {
     "OUTPUT_DIR": "portfolio_results",
-    "OUTPUT_FILENAME": "portfolio_optimisation_results.csv"
+    "OUTPUT_FILENAME": "portfolio_optimisation_results.csv",
+    "BACKTEST_OUTPUT_FILENAME": "backtest_results.csv"
   },
   "stock_sectors": {
     "AMAT": "Technology",
@@ -153,11 +175,15 @@ The `config.json` file controls all optimisation parameters:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `RISK_FREE_RATE` | Annualised risk-free rate for Sharpe/Sortino calculations | 0.02 |
-| `LAMBDA_S` | Skewness preference coefficient (positively rewards positive skew) | 0.1 |
+| `LAMBDA_S` | Skewness preference coefficient (positively rewards positive skew) | 0.01 |
 | `LAMBDA_K` | Kurtosis penalty coefficient (positively penalises fat tails) | 0.1 |
 | `ROLLING_WINDOW_DAYS` | Days for dynamic covariance estimation | 252 |
-| `CONFIGURED_MAX_STOCK_WEIGHT` | Maximum individual position size | 0.05 |
-| `CONFIGURED_MAX_SECTOR_WEIGHT` | Maximum sector concentration | 0.25 |
+| `CONFIGURED_MAX_STOCK_WEIGHT` | Maximum individual position size (as a decimal, e.g., 0.1 for 10%) | 1.0 |
+| `CONFIGURED_MAX_SECTOR_WEIGHT` | Maximum sector concentration (as a decimal) | 1.0 |
+| `ROLLING_WINDOW_DAYS` | Number of trading days for the rolling window in dynamic covariance estimation | 180 |
+| `REBALANCING_FREQUENCY` | Frequency of portfolio rebalancing during backtesting. Examples: "QE" (Quarterly End), "ME" (Monthly End), "YE" (Yearly End) | QE |
+| `HISTORICAL_DATA_WINDOW_DAYS` | Number of historical trading days used for calculations during backtesting | 252 |
+
 
 ## Output
 
@@ -166,18 +192,39 @@ The code generates:
 1. **portfolio_optimisation_results.csv**: Detailed portfolio metrics and weights
 2. **optimised_portfolios.png**: Efficient frontier with optimal portfolios
 3. **stocks_heatmap.png**: Asset correlation matrix visualisation
+4. **backtest_results.csv**: Detailed metrics from the backtest: cumulative returns, volatility, Sharpe/Sortino ratios, and max drawdown
+5. **cumulative_returns.png**: Cumulative P&L over the backtest period for different strategies
+6. **benchmark_difference.png**: Efficiency of the computed strategies versus a "Buy & Hold" benchmark portfolio
+7. **dynamic_vs_static_difference.png**: Efficiency of the static and dynamic versions of each computed strategies
 
 >**Note**: Output files are saved to the directory specified in `config.json` under `"output_settings" → "OUTPUT_DIR"`. Default is `"portfolio_results/"`.
 
 ---
 
-### Example: Optimised Portfolios Plot
+### Output examples
 
-This plot illustrates the efficient frontiers (for both static and dynamic covariance models), Monte Carlo simulated portfolios, and the key optimal portfolios (Minimum Variance, Maximum Sharpe, Sortino, and MVSK) derived from your input data.
+- The top left plot shows the efficient frontiers (for both static and dynamic covariance models), Monte Carlo simulated portfolios, and the key optimal portfolios (Minimum Variance, Maximum Sharpe, Sortino, and MVSK) derived from your input data. 
+- The top right plot shows the cumulated P&L over a backtest period for the computed strategies as well as the "Buy & Hold" and rebalanced equally-weighted portfolio ("Rebalanced_EWP") benchmark portfolios. 
+- The bottom left plot shows how each strategy relatively fares compared to the "Buy & Hold" benchmark.
+- The bottom right plot shows how dynamic versions of each strategy fares against their static counterpart. 
 
-![Optimised Portfolios](portfolio_results/optimised_portfolios.png)
+![Optimised Portfolios](portfolio_results/optimised_portfolios.png) ![Backtest Metrics](portfolio_results/cumulative_returns_full.png)
+![Benchmark Differences](portfolio_results/benchmark_difference.png) ![Dynamic vs Static](portfolio_results/dynamic_vs_static_difference.png)
 
----
+## Testing
+
+The backtesting module can be tested to ensure its reliability through a unit test for each strategy and sanity tests ensuring strategy convergence under identical environment.
+
+All tests are located in the 'test_backtest.py' file.
+
+**How to run the tests**
+
+1. **Install 'pytest':
+```
+pip install pytest
+```
+2. **Go the project directory**: ensure 'test_backtest.py' is correctly located
+3. **Run the test**: 'pytest'
 
 ## Technical Implementation
 
@@ -186,10 +233,10 @@ This plot illustrates the efficient frontiers (for both static and dynamic covar
 - **Constraint Handling**: Implements linear equality and inequality constraints for total weight, individual position limits, and sector diversification
 - **Performance Metrics**: Sharpe ratio, Sortino ratio, skewness, kurtosis calculations
 - **Data Preprocessing**: Robust handling of missing data, date alignment, and currency conversion using pandas for efficient time-series operations
+- **Backtesting Module**: Historical performance evaluation with key metrics
 
 ## In development
 
-- [ ] **Backtesting Module**: Historical performance evaluation
 - [ ] **Bayesian Portfolio Optimisation**: Treats expected returns and volatility as distributions for more robust portfolios accounting for estimation risk and uncertainty in input parameters (e.g. Black-Litterman model)
 
 ## Academic References
@@ -209,7 +256,7 @@ For questions, suggestions, or feedback, please open an issue or reach out via G
 
 ## Disclaimer
 
-This tool is designed for research and educational purposes in quantitative finance. It does not constitute financial advice. All optimisation results should be validated independently before any investment decisions.
+This tool is designed for research and educational purposes in quantitative finance. It does not constitute financial advice. All optimisation results should be validated independently before any investment decisions. The author is not responsible for any financial outcomes or losses incurred from the use of this software.
 
 ## License
 
